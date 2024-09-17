@@ -1,0 +1,223 @@
+part 1 codes
+
+# Part 1: Basic Block Cipher Implementation
+
+# 2. Substitution Box (S-Box)
+S_BOX = [
+    [0x9, 0x4, 0xA, 0xB],
+    [0xD, 0x1, 0x8, 0x5],
+    [0x6, 0x2, 0x0, 0x3],
+    [0xC, 0xE, 0xF, 0x7]
+]
+
+# Substitution Function
+def substitute_4bits(value):
+    row = (value & 0b1100) >> 2
+    col = value & 0b0011
+    return S_BOX[row][col]
+
+# 3. Permutation Table
+PERMUTATION_TABLE = [2, 4, 3, 1, 5, 6, 7, 0]
+
+# Permutation Function
+def permute(bits):
+    permuted_bits = 0
+    for i, pos in enumerate(PERMUTATION_TABLE):
+        permuted_bits |= ((bits >> pos) & 1) << i
+    return permuted_bits
+
+# 4. Feistel Function
+def feistel_function(right_half, key):
+    return right_half ^ (key & 0b1111)  # XOR with key's last 4 bits
+
+# 5. Single-Round Encryption Function
+def encrypt_block(block, key):
+    left = (block & 0b11110000) >> 4  # left 4 bits
+    right = block & 0b00001111        # right 4 bits
+    
+    # Apply Feistel function
+    feistel_out = feistel_function(right, key)
+    
+    # XOR the left side with Feistel output
+    new_left = left ^ feistel_out
+    
+    # Apply substitution
+    substituted = substitute_4bits(new_left)
+    
+    # Combine the substituted left and original right parts
+    combined = (substituted << 4) | right
+    
+    # Permute the block
+    return permute(combined)
+
+# Part 2: Extend to Modes of Operation
+
+# ECB Mode Encryption
+def ecb_encrypt(plaintext, key):
+    return [encrypt_block(block, key) for block in plaintext]
+
+# ECB Mode Decryption (reverse the process, not shown here as only encryption is required)
+
+# CBC Mode Encryption
+def cbc_encrypt(plaintext, key, iv):
+    ciphertext = []
+    previous_block = iv
+    for block in plaintext:
+        block ^= previous_block  # XOR with the previous block (or IV)
+        encrypted_block = encrypt_block(block, key)
+        ciphertext.append(encrypted_block)
+        previous_block = encrypted_block
+    return ciphertext
+
+# CBC Mode Decryption (reverse the process, not shown here as only encryption is required)
+
+# Part 3: Sample Encryption and Decryption
+
+# Helper function to convert a string into 8-bit blocks
+def string_to_blocks(text):
+    return [ord(char) for char in text]
+
+# Helper function to convert blocks back into a string
+def blocks_to_string(blocks):
+    return ''.join([chr(block) for block in blocks])
+
+# Main example usage
+if __name__ == "__main__":
+    # Example plaintext and key
+    plaintext = "HELLO"
+    key = 0b11001010  # Example 8-bit key
+    iv = 0b10101010   # Example 8-bit IV for CBC
+    
+    # Convert plaintext to 8-bit blocks
+    plaintext_blocks = string_to_blocks(plaintext)
+    
+    # ECB Mode Encryption
+    ecb_ciphertext = ecb_encrypt(plaintext_blocks, key)
+    print("ECB Encrypted:", ecb_ciphertext)
+    
+    # CBC Mode Encryption
+    cbc_ciphertext = cbc_encrypt(plaintext_blocks, key, iv)
+    print("CBC Encrypted:", cbc_ciphertext)
+
+// part 1 end
+
+
+part 2 codes 
+
+# Encrypt each block independently in ECB mode
+def ecb_encrypt(plaintext_blocks, key):
+    return [encrypt_block(block, key) for block in plaintext_blocks]
+
+# Decrypt each block independently in ECB mode (assuming encryption and decryption process is symmetric)
+def ecb_decrypt(ciphertext_blocks, key):
+    return [encrypt_block(block, key) for block in ciphertext_blocks]  # Same function can be used if symmetric
+# CBC Mode Encryption
+def cbc_encrypt(plaintext_blocks, key, iv):
+    ciphertext = []
+    previous_block = iv
+    for block in plaintext_blocks:
+        # XOR the current block with the previous ciphertext (or IV for the first block)
+        block ^= previous_block
+        encrypted_block = encrypt_block(block, key)
+        ciphertext.append(encrypted_block)
+        previous_block = encrypted_block  # Set the current ciphertext as the previous block
+    return ciphertext
+
+# CBC Mode Decryption
+def cbc_decrypt(ciphertext_blocks, key, iv):
+    plaintext = []
+    previous_block = iv
+    for block in ciphertext_blocks:
+        decrypted_block = encrypt_block(block, key)  # Decrypt the current block
+        plaintext_block = decrypted_block ^ previous_block  # XOR with the previous ciphertext (or IV)
+        plaintext.append(plaintext_block)
+        previous_block = block  # Set the current ciphertext as the previous block
+    return plaintext
+# Example plaintext (represented as 8-bit blocks)
+plaintext = [0b11010101, 0b01100110, 0b10011011]  # Example 8-bit blocks
+key = 0b10101100  # Example 8-bit key
+iv = 0b11110000   # Initialization vector for CBC mode
+
+# ECB Mode Encryption and Decryption
+ciphertext_ecb = ecb_encrypt(plaintext, key)
+decrypted_ecb = ecb_decrypt(ciphertext_ecb, key)
+
+# CBC Mode Encryption and Decryption
+ciphertext_cbc = cbc_encrypt(plaintext, key, iv)
+decrypted_cbc = cbc_decrypt(ciphertext_cbc, key, iv)
+
+# Display the results
+print("ECB Ciphertext:", ciphertext_ecb)
+print("ECB Decrypted:", decrypted_ecb)
+print("CBC Ciphertext:", ciphertext_cbc)
+print("CBC Decrypted:", decrypted_cbc)
+
+
+//part 2 end
+
+
+
+
+
+part 3 codes 
+
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+from Crypto.Random import get_random_bytes
+
+# ECB Mode Encryption
+def encrypt_ecb(plaintext, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    padded_plaintext = pad(plaintext, AES.block_size)
+    ciphertext = cipher.encrypt(padded_plaintext)
+    return ciphertext
+
+# ECB Mode Decryption
+def decrypt_ecb(ciphertext, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    decrypted_padded_plaintext = cipher.decrypt(ciphertext)
+    plaintext = unpad(decrypted_padded_plaintext, AES.block_size)
+    return plaintext
+
+# CBC Mode Encryption
+def encrypt_cbc(plaintext, key, iv):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    padded_plaintext = pad(plaintext, AES.block_size)
+    ciphertext = cipher.encrypt(padded_plaintext)
+    return ciphertext
+
+# CBC Mode Decryption
+def decrypt_cbc(ciphertext, key, iv):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    decrypted_padded_plaintext = cipher.decrypt(ciphertext)
+    plaintext = unpad(decrypted_padded_plaintext, AES.block_size)
+    return plaintext
+
+# Example usage with ECB and CBC
+def main():
+    # Sample Input
+    plaintext = b'This is a sample message to encrypt and decrypt using ECB and CBC modes.'
+    key = b'Sixteen byte key'  # AES requires a 16-byte key (128-bit)
+    
+    print("=== Original Plaintext ===")
+    print(plaintext)
+
+    # ECB Mode Encryption and Decryption
+    print("\n=== ECB Mode ===")
+    ciphertext_ecb = encrypt_ecb(plaintext, key)
+    print("ECB Encrypted:", ciphertext_ecb)
+
+    decrypted_ecb = decrypt_ecb(ciphertext_ecb, key)
+    print("ECB Decrypted:", decrypted_ecb)
+
+    # CBC Mode Encryption and Decryption
+    print("\n=== CBC Mode ===")
+    iv = get_random_bytes(AES.block_size)  # Generate a random IV for CBC mode
+    ciphertext_cbc = encrypt_cbc(plaintext, key, iv)
+    print("CBC Encrypted:", ciphertext_cbc)
+
+    decrypted_cbc = decrypt_cbc(ciphertext_cbc, key, iv)
+    print("CBC Decrypted:", decrypted_cbc)
+
+if __name__ == "__main__":
+    main()
